@@ -1,0 +1,311 @@
+{
+	"info": {
+		"_postman_id": "ab23c8bd-4ba6-46d7-a448-bcb4fc73bde8",
+		"name": "LangGraph Multiple Interrupts with Enqueue",
+		"description": "Collection for handling multiple HumanInterrupt objects with enqueue strategy",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "38333664"
+	},
+	"item": [
+		{
+			"name": "1. Create Thread",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 200) {",
+							"    const response = pm.response.json();",
+							"    pm.collectionVariables.set('thread_id', response.thread_id);",
+							"    console.log('Thread created:', response.thread_id);",
+							"}"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"accept-encoding": true,
+					"connection": true,
+					"accept": true,
+					"user-agent": true
+				}
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/threads",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"threads"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2. Start Run with Multiple Tools",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"content-type": true
+				},
+				"protocolVersion": "auto",
+				"disableUrlEncoding": true
+			},
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "text/event-stream; charset=utf-8"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"assistant_id\": \"{{assistant_id}}\",\n  \"input\": {\n    \"messages\": [\n      {\n        \"role\": \"human\",\n        \"content\": \"Run fast_analysis_tool on 'dataset-A' and slow_processing_tool on 'dataset-B' concurrently\"\n      }\n    ]\n  },\n  \"interrupt_before\":[],\n  \"interrupt_after\":[],\n  \"multitask_strategy\": \"interrupt\",\n  \"config\":{\"configurable\":{\"thread_id\":\"{{thread_id}}}}\"}}\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/threads/{{thread_id}}/runs/stream",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"threads",
+						"{{thread_id}}",
+						"runs",
+						"stream"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3.1 Search Thread",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"accept-encoding": true,
+					"connection": true,
+					"accept": true,
+					"user-agent": true
+				}
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/threads/search",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"threads",
+						"search"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3.2 Check Thread State for Interrupts",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const response = pm.response.json();",
+							"const interrupts = response.values?.__interrupt__ || {};",
+							"const interruptCount = Object.keys(interrupts).length;",
+							"",
+							"console.log(`Found ${interruptCount} interrupts:`);",
+							"Object.keys(interrupts).forEach(id => {",
+							"    console.log(`- ${id}: ${interrupts[id].action_request.action}`);",
+							"});",
+							"",
+							"if (interruptCount > 0) {",
+							"    pm.collectionVariables.set('has_interrupts', 'true');",
+							"    pm.collectionVariables.set('interrupt_ids', JSON.stringify(Object.keys(interrupts)));",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/threads/{{thread_id}}/state",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"threads",
+						"{{thread_id}}",
+						"state"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "4. Resume Interrupts",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n \"input\": null,\n \"command\": {\n  \"resume\": {\n   //\"7ff0e583c7aba922953524b429876515\": { \"type\": \"edit\", \"args\": {\"mode\": \"quick\"} }\n   \"81d8ba7c1366ba52894468e867b6bbbd\": { \"type\": \"accept\" }\n   \n  }\n },\n \"assistant_id\": \"{{assistant_id}}\",\n \"config\": {\n  \"configurable\": {\n   \"thread_id\": \"{{thread_id}}\"\n  }\n }\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/threads/{{thread_id}}/runs/stream",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"threads",
+						"{{thread_id}}",
+						"runs",
+						"stream"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "5. Check Run Status",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const response = pm.response.json();",
+							"const runs = response.data || [];",
+							"",
+							"console.log('Run status:');",
+							"runs.forEach(run => {",
+							"    console.log(`- ${run.id}: ${run.status}`);",
+							"});",
+							"",
+							"const allCompleted = runs.every(run => ['success', 'error'].includes(run.status));",
+							"if (allCompleted) {",
+							"    console.log('✅ All runs completed!');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/threads/{{thread_id}}/runs",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"threads",
+						"{{thread_id}}",
+						"runs"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8123",
+			"type": "string"
+		},
+		{
+			"key": "thread_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "assistant_id",
+			"value": "agent",
+			"type": "string"
+		}
+	]
+}

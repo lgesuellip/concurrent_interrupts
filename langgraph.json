@@ -1,0 +1,11 @@
+{
+    "image_distro": "wolfi",
+    "graphs": {
+      "agent": "./src/agent.py:build_agent"
+    },
+    "python_version": "3.11",
+    "env": ".env",
+    "dependencies": [
+      "."
+    ]
+}
