@@ -4,9 +4,7 @@ A LangGraph application demonstrating concurrent interrupt handling in agent wor
 
 ## Overview
 
-This project demonstrates how LangGraph handles concurrent interrupts when multiple tools are running in parallel. The key insight is that when multiple tools are running concurrently and raise interrupts, the graph remains "busy" until all running tasks complete or are interrupted. Only then can interrupts be resumed.
-
-![Concurrent Interrupts Diagram](diagram.png)
+This project demonstrates how LangGraph handles concurrent interrupts when multiple tools are running in parallel. The interrupts are sent using the **send API**, allowing tools to communicate their interrupt status back to the graph. The key insight is that when multiple tools are running concurrently and raise interrupts, the graph remains "busy" until all running tasks complete or are interrupted. Only then can interrupts be resumed.
 
 ### Flow Explanation
 
