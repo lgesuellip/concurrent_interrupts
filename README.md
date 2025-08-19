@@ -2,6 +2,59 @@
 
 A LangGraph application demonstrating concurrent interrupt handling in agent workflows.
 
+## Overview
+
+This project demonstrates how LangGraph handles concurrent interrupts when multiple tools are running in parallel. The key insight is that when multiple tools are running concurrently and raise interrupts, the graph remains "busy" until all running tasks complete or are interrupted. Only then can interrupts be resumed.
+
+![Concurrent Interrupts Diagram](diagram.png)
+
+### Flow Explanation
+
+The diagram above illustrates the concurrent interrupt handling pattern:
+
+1. **Parallel Execution**: Multiple tools (Task A and Task B) start running concurrently
+2. **First Interrupt**: Tool1 raises an interrupt while Tool2 is still running
+3. **Busy State**: The graph remains busy and cannot process resume requests
+4. **Second Interrupt**: Tool2 also raises an interrupt  
+5. **Waiting State**: Only after all tasks are paused/completed can interrupts be resumed
+6. **Batch Resume**: Multiple interrupts can be resumed in a single call when the graph is in waiting state
+
+### Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant MainGraph
+    participant Tool1
+    participant Tool2
+    participant User
+
+    MainGraph->>Tool1: Start Task A
+    MainGraph->>Tool2: Start Task B (parallel)
+
+    Tool1-->>MainGraph: Interrupt A raised
+    MainGraph-->>User: Show Interrupt A
+
+    Note right of MainGraph: Graph = busy (Tool2 still running)
+
+    User->>MainGraph: Resume Interrupt A (single call)
+    MainGraph-->>User: ❌ Error: Thread is busy
+
+    Tool2-->>MainGraph: Interrupt B raised
+    MainGraph-->>User: Show Interrupt B
+
+    Tool2-->>MainGraph: Task B completed
+    Note right of MainGraph: Graph = waiting (all tasks paused)
+
+    User->>MainGraph: Resume Interrupt A + B (single call)
+    MainGraph->>Tool1: Resume A ✅
+    MainGraph->>Tool2: Resume B ✅
+
+    Tool1-->>MainGraph: Final response A
+    Tool2-->>MainGraph: Final response B (later)
+
+    MainGraph-->>User: Combined result A + B ✅
+```
+
 ## Prerequisites
 
 - Python 3.11 or higher
